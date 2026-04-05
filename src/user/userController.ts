@@ -1,9 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { validationResult } from 'express-validator';
 import createHttpError from 'http-errors';
+import bcrypt from 'bcrypt';
 import User from './userModel.js';
+
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
-  const { email } = req.body;
+  const { email, password } = req.body;
 
   // step 1 validate the request body (e.g., check for required fields, validate email format, etc.)
   const errors = validationResult(req);
@@ -22,8 +24,11 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
     return next(error);
   }
 
-  // step 3 process the registration logic (e.g., save user to database, hash password, etc.)
-  // step 4 send a response back to the client (e.g., success message, user data, etc.)
+  // step 3 password hashing and user creation logic would go here (e.g., using bcrypt to hash the password, saving the user to the database, etc.)
+  const hashedPassword = await bcrypt.hash(password, 10);
+
+  // step 4 process the registration logic (e.g., save user to database, hash password, etc.)
+  // step 5 send a response back to the client (e.g., success message, user data, etc.)
   res.json({ message: 'User registered successfully' });
   next();
 };
