@@ -12,6 +12,7 @@ const globalErrorHandler = (
 
   return res.status(statusCode).json({
     success: false,
+    errors: err.errors || null,
     errorStack: config.env === 'development' ? err.stack : '',
     message: err.message || 'Internal Server Error',
   });
