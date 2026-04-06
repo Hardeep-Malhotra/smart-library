@@ -33,6 +33,21 @@ userRouter.post(
 // 2. User login route
 //=======================================
 
-userRouter.post('/login', loginUser);
+userRouter.post(
+  '/login',
+  [
+    body('email')
+      .isEmail()
+      .withMessage('Invalid email format')
+      .normalizeEmail()
+      .trim(),
+
+    body('password')
+      .isLength({ min: 6 })
+      .withMessage('Password must be at least 6 characters long')
+      .trim(),
+  ],
+  loginUser
+);
 
 export default userRouter;
