@@ -45,9 +45,8 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
       }
     );
 
-    // step 4 process the registration logic (e.g., save user to database, hash password, etc.)
-    // step 5 send a response back to the client (e.g., success message, user data, etc.)
-    res.json({
+    // step 4 send a response back to the client (e.g., success message, user data, etc.)
+    res.status(201).json({
       accessToken: token,
       name: newUser.name,
       email: newUser.email,
@@ -57,4 +56,9 @@ const createUser = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { createUser };
+const loginUser = async (req: Request, res: Response, next: NextFunction) => {
+  res.json({ message: 'Login route is working' });
+  next();
+};
+
+export { createUser, loginUser };
