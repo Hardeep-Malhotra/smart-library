@@ -1,10 +1,14 @@
 import express from 'express';
 import { body } from 'express-validator';
-import { createUser } from '../user/usercontroller.js';
+import { createUser, loginUser } from '../user/userController.js';
 
 const userRouter = express.Router();
 
 // Define routes for userRouter
+
+//=======================================
+// 1 .Create a new user Register route
+//=======================================
 
 userRouter.post(
   '/register',
@@ -24,5 +28,11 @@ userRouter.post(
 
   createUser
 );
+
+//=======================================
+// 2. User login route
+//=======================================
+
+userRouter.post('/login', loginUser);
 
 export default userRouter;

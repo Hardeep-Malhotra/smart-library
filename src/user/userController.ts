@@ -6,6 +6,9 @@ import jwt from 'jsonwebtoken';
 import User from './userModel.js';
 import _config from '../config/config.js';
 
+//===============================================================================================================================================================================
+// 1. Create a new user Register controller function with validation and error handling and also with token generation logic and send a response back to the client.
+//===============================================================================================================================================================================
 const createUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { email, password, name } = req.body;
