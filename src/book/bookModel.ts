@@ -30,7 +30,7 @@ const bookSchema = new Schema<Book>(
     file: {
       type: String,
       required: true,
-      match: /^https?:\/\/.+\.(pdf|epub|mobi)$/,
+      match: /^https?:\/\/.+/,
     },
     genre: {
       type: String,

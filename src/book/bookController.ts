@@ -1,69 +1,102 @@
-import fs from 'node:fs/promises'; // File system import for cleanup
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { Request, Response, NextFunction } from 'express';
-import cloudinary from '../config/cloudinary.js';
+import fs from 'node:fs/promises'; // Promise-based file system module for async file operations
+import path from 'node:path'; // Helps in handling file paths safely across OS
+import { Request, Response } from 'express';
+import cloudinary from '../config/cloudinary.js'; // Cloudinary config for file uploads
+import { BookModel } from './bookModel.js'; // Mongoose model
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const createBook = async (req: Request, res: Response) => {
+  // These will store local file paths for cleanup later
+  let coverPath: string | null = null;
+  let bookPath: string | null = null;
 
-const createBook = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    // Extract uploaded files from request (Multer format)
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-    // 1. Validation: Dono files check karo
+    // ✅ 1. Validate if both files exist
     if (!files?.coverImageUrl?.[0] || !files?.file?.[0]) {
-      return res
-        .status(400)
-        .json({ message: 'Bhai, image aur PDF dono chahiye!' });
+      return res.status(400).json({
+        success: false,
+        message: 'Both cover image and PDF file are required.',
+      });
     }
 
+    // Extract text fields from request body
+    const { title, author, genre } = req.body;
+
+    // ✅ 2. Validate required fields
+    if (!title || !author || !genre) {
+      return res.status(400).json({
+        success: false,
+        message: 'Title, Author, and Genre are required.',
+      });
+    }
+
+    // Get individual files
     const coverImageFile = files.coverImageUrl[0];
     const bookFile = files.file[0];
 
-    // 2. Resolve Paths
-    const coverPath = path.resolve(
-      __dirname,
-      '../../public/data/uploads',
-      coverImageFile.filename
-    );
-    const bookPath = path.resolve(
-      __dirname,
-      '../../public/data/uploads',
-      bookFile.filename
-    );
+    // ✅ 3. Define upload directory (safe for production)
+    const uploadDir = path.resolve(process.cwd(), 'public/data/uploads');
 
-    // 3. Upload to Cloudinary (Parallel upload for better speed)
+    // Create full file paths
+    coverPath = path.join(uploadDir, coverImageFile.filename);
+    bookPath = path.join(uploadDir, bookFile.filename);
+
+    // ✅ 4. Upload files to Cloudinary in parallel (faster)
     const [imageUpload, pdfUpload] = await Promise.all([
       cloudinary.uploader.upload(coverPath, {
-        filename_override: coverImageFile.filename,
-        folder: 'book-covers',
-        format: coverImageFile.mimetype.split('/').at(-1),
+        folder: 'book-covers', // Folder for images
+        resource_type: 'image', // Specify resource type
       }),
       cloudinary.uploader.upload(bookPath, {
-        filename_override: bookFile.filename,
-        folder: 'book-files',
-        resource_type: 'raw',
+        folder: 'book-files', // Folder for PDFs
+        resource_type: 'raw', // Required for non-image files (PDF)
       }),
     ]);
 
-    // 4. Cleanup: Local storage se files delete karo
-    await fs.unlink(coverPath);
-    await fs.unlink(bookPath);
+    // ✅ 5. Save book data in database
+    const newBook = await BookModel.create({
+      title,
+      author,
+      genre,
+      coverImageUrl: imageUpload.secure_url, // Cloudinary image URL
+      file: pdfUpload.secure_url, // Cloudinary PDF URL
+    });
 
+    // ✅ 6. Send success response
     return res.status(201).json({
-      message: 'Book successfully created!',
-      coverUrl: imageUpload.secure_url,
-      fileUrl: pdfUpload.secure_url,
+      success: true,
+      message: 'Book created successfully!',
+      data: {
+        id: newBook._id,
+        title,
+        author,
+        genre,
+        coverUrl: imageUpload.secure_url,
+        fileUrl: pdfUpload.secure_url,
+      },
     });
   } catch (error) {
-    console.error('Error:', error);
-    if (!res.headersSent) {
-      return res
-        .status(500)
-        .json({ message: 'Error occurred while uploading files!' });
+    // ✅ 7. Global error handling
+    console.error('Create Book Error:', error);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  } finally {
+    // ✅ 8. Cleanup: delete local files (runs always)
+    try {
+      if (coverPath) {
+        await fs.unlink(coverPath); // Delete cover image
+      }
+      if (bookPath) {
+        await fs.unlink(bookPath); // Delete PDF file
+      }
+    } catch (cleanupError) {
+      console.error('Cleanup Error:', cleanupError);
     }
-    next(error);
   }
 };
 
