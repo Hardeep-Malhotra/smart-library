@@ -59,7 +59,9 @@ const createBook = async (req: Request, res: Response, next: NextFunction) => {
   } catch (error) {
     console.error('Error:', error);
     if (!res.headersSent) {
-      return res.status(500).json({ message: 'Upload fail ho gaya!' });
+      return res
+        .status(500)
+        .json({ message: 'Error occurred while uploading files!' });
     }
     next(error);
   }
