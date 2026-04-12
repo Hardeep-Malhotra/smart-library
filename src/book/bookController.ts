@@ -216,4 +216,45 @@ const getAllBooks = async (req: Request, res: Response, next: NextFunction) => {
   }
 };
 
-export { createBook, updateBook, getAllBooks };
+// =========================================
+// Get Single Book
+// =========================================
+
+const getSingleBook = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const bookId = req.params.bookId as string;
+
+    console.log('ID:', bookId);
+
+    if (!mongoose.Types.ObjectId.isValid(bookId)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid ID',
+      });
+    }
+
+    const book = await BookModel.findById(bookId);
+
+    console.log('BOOK:', book);
+
+    if (!book) {
+      return res.status(404).json({
+        success: false,
+        message: 'Book not found',
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      book,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { createBook, updateBook, getAllBooks, getSingleBook };
