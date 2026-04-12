@@ -1,12 +1,16 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import mongoose from 'mongoose';
-import { Response, NextFunction } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import cloudinary from '../config/cloudinary.js';
 import { BookModel } from './bookModel.js';
 import { AuthRequest } from '../middlewares/authenticate.js';
 import { Book } from './bookTypes.js';
 import createHttpError from 'http-errors';
+
+// ==========================================
+// Create Book Controller Function
+// ==========================================
 
 const createBook = async (req: AuthRequest, res: Response) => {
   let coverPath: string | null = null;
@@ -94,6 +98,10 @@ const createBook = async (req: AuthRequest, res: Response) => {
   }
 };
 
+// ==========================================
+// Update Book Controller Function
+// ==========================================
+
 const updateBook = async (
   req: AuthRequest,
   res: Response,
@@ -165,4 +173,47 @@ const updateBook = async (
     next(error);
   }
 };
-export { createBook, updateBook };
+
+// ==========================================
+// GetAllBooks Controller Function
+// ==========================================
+
+const getAllBooks = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const page = Number(req.query.page) || 1;
+    const limit = Number(req.query.limit) || 5;
+    const search = req.query.search || '';
+    const genre = req.query.genre;
+
+    const skip = (page - 1) * limit;
+
+    const filter: Record<string, unknown> = {};
+
+    if (search) {
+      filter.title = { $regex: search, $options: 'i' };
+    }
+
+    if (genre) {
+      filter.genre = genre as string;
+    }
+
+    const total = await BookModel.countDocuments(filter);
+
+    const books = await BookModel.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      success: true,
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      books,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export { createBook, updateBook, getAllBooks };
