@@ -1,11 +1,12 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import mongoose from 'mongoose';
-import { Response } from 'express';
+import { Response, NextFunction } from 'express';
 import cloudinary from '../config/cloudinary.js';
 import { BookModel } from './bookModel.js';
 import { AuthRequest } from '../middlewares/authenticate.js';
 import { Book } from './bookTypes.js';
+import createHttpError from 'http-errors';
 
 const createBook = async (req: AuthRequest, res: Response) => {
   let coverPath: string | null = null;
@@ -93,4 +94,75 @@ const createBook = async (req: AuthRequest, res: Response) => {
   }
 };
 
-export { createBook };
+const updateBook = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { title, genre } = req.body;
+    const bookId = req.params.bookId;
+
+    const book = await BookModel.findById(bookId);
+    if (!book) {
+      return next(createHttpError(404, 'Book not found!'));
+    }
+
+    if (book.author.toString() !== req.userId) {
+      return next(createHttpError(403, 'You cannot update this book'));
+    }
+
+    const files = req.files as { [key: string]: Express.Multer.File[] };
+
+    let newImageUrl = book.coverImageUrl;
+    let newPdfUrl = book.file;
+
+    const uploadDir = path.resolve(process.cwd(), 'public/data/uploads');
+
+    // 📸 Image
+    if (files?.coverImageUrl) {
+      const file = files.coverImageUrl[0];
+      const imagePath = path.join(uploadDir, file.filename);
+
+      const upload = await cloudinary.uploader.upload(imagePath, {
+        folder: 'book-covers',
+      });
+
+      newImageUrl = upload.secure_url;
+
+      await fs.unlink(imagePath);
+    }
+
+    // 📄 PDF
+    if (files?.file) {
+      const file = files.file[0];
+      const pdfPath = path.join(uploadDir, file.filename);
+
+      const upload = await cloudinary.uploader.upload(pdfPath, {
+        folder: 'book-files',
+        resource_type: 'raw',
+      });
+
+      newPdfUrl = upload.secure_url;
+
+      await fs.unlink(pdfPath);
+    }
+
+    // ✏️ Update
+    book.title = title || book.title;
+    book.genre = genre || book.genre;
+    book.coverImageUrl = newImageUrl;
+    book.file = newPdfUrl;
+
+    await book.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Book updated successfully',
+      book,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+export { createBook, updateBook };
