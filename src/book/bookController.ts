@@ -257,4 +257,67 @@ const getSingleBook = async (
   }
 };
 
-export { createBook, updateBook, getAllBooks, getSingleBook };
+// ==========================================
+// Delete Book
+// ==========================================
+
+const deleteBook = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const bookId = req.params.bookId as string;
+
+    // 🔍 Find Book
+    const book = await BookModel.findById(bookId);
+    if (!book) {
+      return next(createHttpError(404, 'Book not found'));
+    }
+
+    // 🔐 Auth Check
+    if (book.author.toString() !== req.userId) {
+      return next(createHttpError(403, 'You cannot delete this book'));
+    }
+
+    // ============================
+    // ☁️ Delete from Cloudinary
+    // ============================
+
+    // 📸 Delete Image
+    if (book.coverImageUrl) {
+      const publicId = book.coverImageUrl.split('/').pop()?.split('.')[0];
+
+      if (publicId) {
+        await cloudinary.uploader.destroy(`book-covers/${publicId}`);
+      }
+    }
+
+    // 📄 Delete PDF
+    if (book.file) {
+      const publicId = book.file.split('/').pop();
+
+      if (publicId) {
+        await cloudinary.uploader.destroy(`book-files/${publicId}`, {
+          resource_type: 'raw',
+        });
+      }
+    }
+
+    // ============================
+    // 🗑️ Delete from DB
+    // ============================
+    await BookModel.findByIdAndDelete(bookId);
+
+    // ============================
+    // ✅ Response
+    // ============================
+    res.status(200).json({
+      success: true,
+      message: 'Book deleted successfully',
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+export { createBook, updateBook, getAllBooks, getSingleBook, deleteBook };
