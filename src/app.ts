@@ -1,11 +1,16 @@
 import express from 'express';
-
+import cors from 'cors';
 import globalErrorHandler from './middlewares/globalErrorHandler.middleware.js';
 import userRouter from './user/userRouter..js';
 import bookRouter from './book/bookRouter.js';
+import _config from './config/config.js';
 
 const app = express();
-
+app.use(
+  cors({
+    origin: _config.frontendDomain,
+  })
+);
 app.use(express.json(), express.urlencoded({ extended: true }));
 // Routes
 
