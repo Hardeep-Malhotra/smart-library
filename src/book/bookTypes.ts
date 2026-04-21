@@ -5,6 +5,7 @@ import { User } from '../user/userTypes.js';
 export interface Book extends Document {
   title: string;
   slug: string; // Removed '?' because your middleware ensures it exists
+  description: string;
 
   // If you always populate 'author', use User. If not, use ObjectId.
   author: mongoose.Types.ObjectId | User;

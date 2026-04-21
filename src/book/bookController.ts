@@ -33,9 +33,9 @@ const createBook = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const { title, genre } = req.body;
+    const { title, description, genre } = req.body;
 
-    if (!title || !genre) {
+    if (!title || !description || !genre) {
       return res.status(400).json({
         success: false,
         message: 'Title and Genre are required.',
@@ -63,6 +63,7 @@ const createBook = async (req: AuthRequest, res: Response) => {
 
     const newBook: Book = await BookModel.create({
       title,
+      description,
       author: new mongoose.Types.ObjectId(req.userId),
       genre,
       coverImageUrl: imageUpload.secure_url,
@@ -75,6 +76,7 @@ const createBook = async (req: AuthRequest, res: Response) => {
       data: {
         id: newBook._id.toString(),
         title: newBook.title,
+        description: newBook.description,
         author: newBook.author,
         genre: newBook.genre,
         coverUrl: newBook.coverImageUrl,
@@ -108,7 +110,7 @@ const updateBook = async (
   next: NextFunction
 ) => {
   try {
-    const { title, genre } = req.body;
+    const { title, description, genre } = req.body;
     const bookId = req.params.bookId;
 
     const book = await BookModel.findById(bookId);
@@ -158,6 +160,7 @@ const updateBook = async (
 
     // ✏️ Update
     book.title = title || book.title;
+    book.description = description || book.description;
     book.genre = genre || book.genre;
     book.coverImageUrl = newImageUrl;
     book.file = newPdfUrl;

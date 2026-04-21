@@ -16,6 +16,13 @@ const bookSchema = new Schema<Book>(
       unique: true,
       index: true,
     },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+      minlength: 10,
+      maxlength: 2000,
+    },
     author: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
