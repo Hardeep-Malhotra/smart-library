@@ -203,6 +203,7 @@ const getAllBooks = async (req: Request, res: Response, next: NextFunction) => {
     const total = await BookModel.countDocuments(filter);
 
     const books = await BookModel.find(filter)
+      .populate('author', 'name')
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -231,8 +232,6 @@ const getSingleBook = async (
   try {
     const bookId = req.params.bookId as string;
 
-    console.log('ID:', bookId);
-
     if (!mongoose.Types.ObjectId.isValid(bookId)) {
       return res.status(400).json({
         success: false,
@@ -240,7 +239,7 @@ const getSingleBook = async (
       });
     }
 
-    const book = await BookModel.findById(bookId);
+    const book = await BookModel.findById(bookId).populate('author', 'name');
 
     console.log('BOOK:', book);
 
